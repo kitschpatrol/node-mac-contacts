@@ -14,6 +14,7 @@
     "rebuild:dev": "node-gyp rebuild --debug",
     "test": "./node_modules/.bin/mocha --reporter spec",
     "test:readonly": "TEST_READONLY=true ./node_modules/.bin/mocha --reporter spec",
+    "postinstall": "npm run build",
     "prepare": "husky install"
   },
   "repository": {
