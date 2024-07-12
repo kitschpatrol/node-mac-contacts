@@ -1,4 +1,6 @@
-const { expect } = require('chai')
+const { test, describe, it, beforeEach, afterEach } = require('node:test')
+const assert = require('assert')
+
 const {
   getAuthStatus,
   getContactsByName,
@@ -15,99 +17,100 @@ const isCI = require('is-ci')
 const ifit = (condition) => (condition ? it : it.skip)
 const ifdescribe = (condition) => (condition ? describe : describe.skip)
 
-if (!isCI) {
-  requestAccess().then((status) => {
-    if (status !== 'Authorized') {
-      console.error('Access to Contacts not authorized - cannot proceed.')
-      process.exit(1)
+describe('node-mac-contacts', () => {
+  beforeEach(async () => {
+    if (!isCI) {
+      const status = await requestAccess()
+      if (status !== 'Authorized') {
+        console.error('Access to Contacts not authorized - cannot proceed.')
+        process.exit(1)
+      }
     }
   })
-}
 
-describe('node-mac-contacts', () => {
   describe('getAuthStatus()', () => {
     it('should not throw', () => {
-      expect(() => {
+      assert.doesNotThrow(() => {
         getAuthStatus()
-      }).to.not.throw()
+      })
     })
 
     it('should return a string', () => {
       const status = getAuthStatus()
-      expect(status).to.be.a('string')
+      assert.strictEqual(typeof status, 'string')
     })
   })
 
   describe('getAllContacts([extraProperties])', () => {
     it('should return an array', () => {
       const contacts = getAllContacts()
-      expect(contacts).to.be.an('array')
+      assert(Array.isArray(contacts))
     })
 
     it('should throw if extraProperties is not an array', () => {
-      expect(() => {
+      assert.throws(() => {
         getAllContacts('tsk-bad-array')
-      }).to.throw(/extraProperties must be an array/)
+      }, /extraProperties must be an array/)
     })
 
     it('should throw if extraProperties contains invalid properties', () => {
       const errorMessage =
         'properties in extraProperties must be one of jobTitle, departmentName, organizationName, middleName, note, contactImage, contactThumbnailImage, instantMessageAddresses, socialProfiles, urlAddresses'
 
-      expect(() => {
+      assert.throws(() => {
         getAllContacts(['bad-property'])
-      }).to.throw(errorMessage)
+      }, new RegExp(errorMessage))
     })
   })
 
   describe('addNewContact(contact)', () => {
     ifit(!isReadOnly)('throws if contact is not a nonempty object', () => {
-      expect(() => {
+      assert.throws(() => {
         addNewContact(1)
-      }).to.throw(/contact must be a non-empty object/)
+      }, /contact must be a non-empty object/)
 
-      expect(() => {
+      assert.throws(() => {
         addNewContact({})
-      }).to.throw(/contact must be a non-empty object/)
+      }, /contact must be a non-empty object/)
     })
 
     ifit(!isReadOnly)('should throw if name properties are not strings', () => {
-      expect(() => {
+      assert.throws(() => {
         addNewContact({ firstName: 1 })
-      }).to.throw(/firstName must be a string/)
+      }, /firstName must be a string/)
 
-      expect(() => {
+      assert.throws(() => {
         addNewContact({ lastName: 1 })
-      }).to.throw(/lastName must be a string/)
+      }, /lastName must be a string/)
 
-      expect(() => {
+      assert.throws(() => {
         addNewContact({ nickname: 1 })
-      }).to.throw(/nickname must be a string/)
+      }, /nickname must be a string/)
     })
 
     ifit(!isReadOnly)(
       'should throw if birthday is not a string in YYYY-MM-DD format',
       () => {
-        expect(() => {
+        assert.throws(() => {
           addNewContact({ birthday: 1 })
-        }).to.throw(/birthday must be a string/)
+        }, /birthday must be a string/)
 
-        expect(() => {
+        assert.throws(() => {
           addNewContact({ birthday: '01-01-1970' })
-        }).to.throw(/birthday must use YYYY-MM-DD format/)
+        }, /birthday must use YYYY-MM-DD format/)
       },
     )
 
     ifit(!isReadOnly)('should throw if phoneNumbers is not an array', () => {
-      expect(() => {
+      assert.throws(() => {
         addNewContact({ phoneNumbers: 1 })
-      }).to.throw(/phoneNumbers must be an array/)
+      }, /phoneNumbers must be an array/)
     })
 
     ifit(!isReadOnly)('should throw if emailAddresses is not an array', () => {
-      expect(() => {
+      assert.throws(() => {
         addNewContact({ emailAddresses: 1 })
-      }).to.throw(/emailAddresses must be an array/)
+      }, /emailAddresses must be an array/)
     })
 
     ifit(!isCI && !isReadOnly)('should successfully add a contact', () => {
@@ -120,30 +123,30 @@ describe('node-mac-contacts', () => {
         emailAddresses: ['billy@grapeseed.com'],
       })
 
-      expect(success).to.be.true
+      assert.strictEqual(success, true)
     })
   })
 
   describe('getContactsByName(name[, extraProperties])', () => {
     it('should throw if name is not a string', () => {
-      expect(() => {
+      assert.throws(() => {
         getContactsByName(12345)
-      }).to.throw(/name must be a string/)
+      }, /name must be a string/)
     })
 
     it('should throw if extraProperties is not an array', () => {
-      expect(() => {
+      assert.throws(() => {
         getContactsByName('jim-bob', 12345)
-      }).to.throw(/extraProperties must be an array/)
+      }, /extraProperties must be an array/)
     })
 
     it('should throw if extraProperties contains invalid properties', () => {
       const errorMessage =
         'properties in extraProperties must be one of jobTitle, departmentName, organizationName, middleName, note, contactImage, contactThumbnailImage, instantMessageAddresses, socialProfiles, urlAddresses'
 
-      expect(() => {
+      assert.throws(() => {
         getContactsByName('jim-bob', ['bad-property'])
-      }).to.throw(errorMessage)
+      }, new RegExp(errorMessage))
     })
 
     ifit(!isCI && !isReadOnly)(
@@ -159,75 +162,77 @@ describe('node-mac-contacts', () => {
         })
 
         const contacts = getContactsByName('Sherlock Holmes')
-        expect(contacts).to.be.an('array').of.length.gte(1)
+        assert(Array.isArray(contacts))
+        assert(contacts.length >= 1)
 
         const contact = contacts[0]
-        expect(contact.firstName).to.eql('Sherlock')
+        assert.strictEqual(contact.firstName, 'Sherlock')
       },
     )
   })
 
   describe('deleteContact({ name, identifier })', () => {
     ifit(!isReadOnly)('should throw if name is not a string', () => {
-      expect(() => {
+      assert.throws(() => {
         deleteContact({ name: 12345 })
-      }).to.throw(/name must be a string/)
+      }, /name must be a string/)
     })
+
     ifit(!isReadOnly)('should throw if identifier is not a string', () => {
-      expect(() => {
+      assert.throws(() => {
         deleteContact({ identifier: 12345 })
-      }).to.throw(/identifier must be a string/)
+      }, /identifier must be a string/)
     })
   })
 
   describe('updateContact(contact)', () => {
     ifit(!isReadOnly)('throws if contact is not a nonempty object', () => {
-      expect(() => {
+      assert.throws(() => {
         updateContact(1)
-      }).to.throw(/contact must be a non-empty object/)
+      }, /contact must be a non-empty object/)
 
-      expect(() => {
+      assert.throws(() => {
         updateContact({})
-      }).to.throw(/contact must be a non-empty object/)
+      }, /contact must be a non-empty object/)
     })
 
     ifit(!isReadOnly)('should throw if name properties are not strings', () => {
-      expect(() => {
+      assert.throws(() => {
         updateContact({ firstName: 1 })
-      }).to.throw(/firstName must be a string/)
+      }, /firstName must be a string/)
 
-      expect(() => {
+      assert.throws(() => {
         updateContact({ lastName: 1 })
-      }).to.throw(/lastName must be a string/)
+      }, /lastName must be a string/)
 
-      expect(() => {
+      assert.throws(() => {
         updateContact({ nickname: 1 })
-      }).to.throw(/nickname must be a string/)
+      }, /nickname must be a string/)
     })
 
     ifit(!isReadOnly)(
       'should throw if birthday is not a string in YYYY-MM-DD format',
       () => {
-        expect(() => {
+        assert.throws(() => {
           updateContact({ birthday: 1 })
-        }).to.throw(/birthday must be a string/)
+        }, /birthday must be a string/)
 
-        expect(() => {
+        assert.throws(() => {
           updateContact({ birthday: '01-01-1970' })
-        }).to.throw(/birthday must use YYYY-MM-DD format/)
+        }, /birthday must use YYYY-MM-DD format/)
       },
     )
 
     ifit(!isReadOnly)('should throw if phoneNumbers is not an array', () => {
-      expect(() => {
+      assert.throws(() => {
         updateContact({ phoneNumbers: 1 })
-      }).to.throw(/phoneNumbers must be an array/)
+      }, /phoneNumbers must be an array/)
     })
 
     ifit(!isReadOnly)('should throw if emailAddresses is not an array', () => {
-      expect(() => {
+      assert.throws(() => {
         updateContact({ emailAddresses: 1 })
-      }).to.throw(/emailAddresses must be an array/)
+      }, /emailAddresses must be an array/)
     })
   })
 
@@ -239,16 +244,16 @@ describe('node-mac-contacts', () => {
     })
 
     it('throws when trying to remove a nonexistent listener', () => {
-      expect(() => {
+      assert.throws(() => {
         listener.remove()
-      }).to.throw(/No observers are currently observing/)
+      }, /No observers are currently observing/)
     })
 
     it('throws when trying to setup an already-existent listener', () => {
-      expect(() => {
+      assert.throws(() => {
         listener.setup()
         listener.setup()
-      }).to.throw(/An observer is already observing/)
+      }, /An observer is already observing/)
     })
 
     ifit(!isReadOnly)('emits an event when the contact is changed', (done) => {
