@@ -36,6 +36,14 @@ If the user has previously denied the request, this method will open the Contact
 
 *Note that access permission request prompts will not appear when `requestAccess()` is invoked in embedded terminals such as those found in Visual Studio Code. Run your code from an external terminal such as Terminal.app instead.*
 
+If you want to grant Visual Studio code's terminal permission to access contacts, you can run the following from an external terminal _at your own risk_:
+
+```sh
+killall "Visual Studio Code" 2> /dev/null || true
+sqlite3 ~/Library/Application\ Support/com.apple.TCC/TCC.db "INSERT OR REPLACE INTO access (service, client, client_type, auth_value, auth_reason, auth_version, indirect_object_identifier) VALUES ('kTCCServiceAddressBook', 'com.microsoft.VSCode', 0, 2, 3, 1, 'UNUSED');"
+killall tccd
+```
+
 ### `contacts.getAuthStatus()`
 
 Returns `String` - Can be one of 'Not Determined', 'Denied', 'Authorized', or 'Restricted'.
